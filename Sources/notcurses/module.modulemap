@@ -1,0 +1,4 @@
+module notcurses [system] {
+    umbrella header "notcurses.h"
+    link "notcurses"
+}
