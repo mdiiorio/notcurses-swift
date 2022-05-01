@@ -13,5 +13,3 @@ jobs:
         run: brew install notcurses
       - name: Build
         run: swift build
-      - name: Run tests
-        run: swift test
