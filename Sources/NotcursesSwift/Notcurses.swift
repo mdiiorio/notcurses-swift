@@ -143,21 +143,17 @@ extension CaseIterable where Self: RawRepresentable, Self.RawValue == UInt32 {
 }
 
 
+// TODO: Several command-line options and keybindings are recommended for Notcurses rendered-mode programs:
+//
+//    -l[0-8] ought be mapped to the various NCLOGLEVEL values. Alternatively, map -v to NCLOGLEVEL_WARNING, and map -vv to NCLOGLEVEL_INFO.
+//    -k ought be mapped to NCOPTION_NO_ALTERNATE_SCREEN.
+//    Ctrl+L ought be mapped to notcurses_refresh(3).
+
 public class Notcurses {
     let nc: OpaquePointer
     public lazy var stdPlane: Plane = {
         Plane(notcurses_stdplane(nc))
     }()
-//    {
-//        get {
-//            if let plane = stdPlane {
-//                return plane
-//            } else {
-//                stdPlane = Plane(notcurses_stdplane(nc))
-//                return stdPlane!
-//            }
-//        }
-//    }
 
     ///
     /// - SeeAlso: notcurses_init
@@ -176,10 +172,6 @@ public class Notcurses {
     public func stop() {
         notcurses_stop(nc)
     }
-
-//    public func stdPlane() -> Plane {
-//
-//    }
 
 //    public func stddimYx(y: inout UInt32, x: inout UInt32) -> Plane {
 //        Plane(notcurses_stddim_yx(nc, &y, &x))
@@ -297,5 +289,30 @@ public class Notcurses {
         var stylesInt: UInt16 = 0
         notcurses_at_yx(nc, UInt32(y), UInt32(x), &stylesInt, &channels)
         styles = Style.enumArrayFromBitMask(mask: stylesInt)
+    }
+
+    var inputObserverToken: NSObjectProtocol?
+
+    public func startRunLoop(inputHandler: @escaping (Key, InputEvent) -> Void) {
+        guard inputObserverToken == nil else {
+            assertionFailure("Runloop already started")
+            return
+        }
+
+        inputObserverToken = NotificationCenter.default.addObserver(
+            forName: .NSFileHandleDataAvailable,
+            object: nil,
+            queue: OperationQueue.main
+        ) { [weak self] note in
+            while let (key, event) = self?.getNonBlocking() {
+                inputHandler(key, event)
+            }
+
+            self?.inputReadyHandle().waitForDataInBackgroundAndNotify()
+        }
+
+        inputReadyHandle().waitForDataInBackgroundAndNotify()
+
+        CFRunLoopRun()
     }
 }
