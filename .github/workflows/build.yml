@@ -9,6 +9,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Install notcurses
+        run: brew install notcurses
       - name: Build
         run: swift build
       - name: Run tests
