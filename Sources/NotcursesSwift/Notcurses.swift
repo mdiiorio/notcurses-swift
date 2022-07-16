@@ -291,6 +291,11 @@ public class Notcurses {
         styles = Style.enumArrayFromBitMask(mask: stylesInt)
     }
 
+    /// Repaint the screen
+    public func refresh() {
+        notcurses_refresh(nc, nil, nil)
+    }
+
     var inputObserverToken: NSObjectProtocol?
 
     public func startRunLoop(inputHandler: @escaping (Key, InputEvent) -> Void) {
