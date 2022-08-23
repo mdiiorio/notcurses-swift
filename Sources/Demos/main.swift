@@ -79,21 +79,11 @@ func drawTitleBar() {
 
 let nc = Notcurses(logLevel: .error, flags: [.noWinchSighandler])
 
-let sigHandler: @convention(c) (Int32) -> Void = { value -> Void in
+installSigwinchHandler {
     nc.refresh()
     drawTitleBar()
     nc.render()
 }
-
-var sigmask: sigset_t = 0
-sigemptyset(&sigmask);
-sigaddset(&sigmask, SIGWINCH);
-var sa = sigaction(
-    __sigaction_u: __sigaction_u(__sa_handler: sigHandler),
-    sa_mask: sigmask,
-    sa_flags: 0
-)
-let res = sigaction(SIGWINCH, &sa, nil)
 
 nc.stdPlane.erase()
 
