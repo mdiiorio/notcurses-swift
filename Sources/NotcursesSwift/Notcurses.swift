@@ -255,7 +255,7 @@ final public class Notcurses {
     ///
     /// - SeeAlso: notcurses_mice_enable
     /// - Returns:
-    public func miceEnable() -> Bool {
+    @discardableResult public func miceEnable() -> Bool {
         // TODO better mask
         notcurses_mice_enable(nc, 0x7) == 0
     }
@@ -263,7 +263,7 @@ final public class Notcurses {
     ///
     /// - SeeAlso: notcurses_mice_disable
     /// - Returns:
-    public func miceDisable() -> Bool {
+    @discardableResult public func miceDisable() -> Bool {
         notcurses_mice_disable(nc) == 0
     }
 
