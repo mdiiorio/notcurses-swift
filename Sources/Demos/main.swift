@@ -1,6 +1,8 @@
 import Foundation
 import NotcursesSwift
 
+Notcurses.checkForTermAndRelaunch()
+
 var selector: NotcursesSwift.Selector?
 
 let demos: [(String, Demo)] = [
@@ -37,8 +39,7 @@ func getSelectedDemoIndex() -> Int {
 
 func runDemo(index: Int) {
     content.erase()
-    let (_, demoInstance) = demos[index]
-    demoInstance.runDemo(in: content)
+    demos[index].1.runDemo(in: content)
 }
 
 func handleInput(key: Key, event: InputEvent) {
@@ -50,12 +51,14 @@ func handleInput(key: Key, event: InputEvent) {
         let selectedIndex = getSelectedDemoIndex()
         if selectedIndex > 0 {
             selector?.prevItem()
+            demos[selectedIndex].1.stopDemo()
             runDemo(index: selectedIndex - 1)
         }
     case .down, .j:
         let selectedIndex = getSelectedDemoIndex()
         if selectedIndex < demos.count - 1 {
             selector?.nextItem()
+            demos[selectedIndex].1.stopDemo()
             runDemo(index: selectedIndex + 1)
         }
     default:
@@ -65,7 +68,32 @@ func handleInput(key: Key, event: InputEvent) {
     nc.render()
 }
 
-let nc = Notcurses(flags: [])
+func drawTitleBar() {
+    let screenCols = nc.stdPlane.columns
+
+    let left = " NotcursesSwift Demo"
+    let right = "Movement: ↑ ↓  Select: <enter>  Quit: q "
+    let middle = String(repeating: " ", count: screenCols - left.count - right.count)
+    nc.stdPlane.putStr(fg: .white, bg: .blue, y: 0, x: 0, left + middle + right)
+}
+
+let nc = Notcurses(logLevel: .error, flags: [.noWinchSighandler])
+
+let sigHandler: @convention(c) (Int32) -> Void = { value -> Void in
+    nc.refresh()
+    drawTitleBar()
+    nc.render()
+}
+
+var sigmask: sigset_t = 0
+sigemptyset(&sigmask);
+sigaddset(&sigmask, SIGWINCH);
+var sa = sigaction(
+    __sigaction_u: __sigaction_u(__sa_handler: sigHandler),
+    sa_mask: sigmask,
+    sa_flags: 0
+)
+let res = sigaction(SIGWINCH, &sa, nil)
 
 nc.stdPlane.erase()
 
@@ -73,10 +101,7 @@ let screenCols = nc.stdPlane.columns
 let screenRows = nc.stdPlane.rows
 let borderWidth = 3
 
-let left = " NotcursesSwift Demo"
-let right = "Movement: ↑ ↓  Select: <enter>  Quit: q "
-let middle = String(repeating: " ", count: screenCols - left.count - right.count)
-nc.stdPlane.putStr(fg: .white, bg: .blue, y: 0, x: 0, left + middle + right)
+drawTitleBar()
 
 let selectorPlane = Plane(parent: nc.stdPlane, y: borderWidth + 1, x: borderWidth, rows: 10, columns: 35)
 var opaqueChan: Channels = 0

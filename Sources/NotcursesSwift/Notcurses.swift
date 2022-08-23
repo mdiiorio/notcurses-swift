@@ -29,7 +29,7 @@ public enum Align: UInt32 {
     case center = 2
     case right = 3
 
-    func getNativeValue() -> ncalign_e {
+    var nativeValue: ncalign_e {
         ncalign_e(rawValue)
     }
 }
@@ -39,8 +39,10 @@ public enum Key: UInt32 {
     case esc = 0x1b
     case space = 0x20
 
+    case h = 0x68
     case j = 0x6a
     case k = 0x6b
+    case l = 0x6c
     case q = 0x71
 
     case invalid = 1115000
@@ -109,16 +111,32 @@ public enum Style: UInt16, CaseIterable {
     case italic = 0x0010
 }
 
-public enum NotcursesOptionsFlags: UInt32, CaseIterable {
-    case InhibitSetlocale = 0x0001
-    case NoClearBitmaps = 0x0002
-    case NoWinchSighandler = 0x0004
-    case NoQuitSighandlers = 0x0008
-    case PreserveCursor = 0x0010
-    case SuppressBanners = 0x0020
-    case NoAlternateScreen = 0x0040
-    case NoFontChanges = 0x0080
-    case DrainInput = 0x0100
+public enum NotcursesOptionsFlag: UInt64, CaseIterable {
+    case inhibitSetlocale = 0x0001
+    case noClearBitmaps = 0x0002
+    case noWinchSighandler = 0x0004
+    case noQuitSighandlers = 0x0008
+    case preserveCursor = 0x0010
+    case suppressBanners = 0x0020
+    case noAlternateScreen = 0x0040
+    case noFontChanges = 0x0080
+    case drainInput = 0x0100
+}
+
+public enum LogLevel: Int32, CaseIterable {
+    case silent = -1
+    case panic = 0
+    case fatal = 1
+    case error = 2
+    case warning = 3
+    case info = 4
+    case verbose = 5
+    case debug = 6
+    case trace = 7
+
+    func getNativeValue() -> ncloglevel_e {
+        ncloglevel_e(rawValue)
+    }
 }
 
 func makeBitMask<T: RawRepresentable>(from: [T]) -> UInt16 where T.RawValue == UInt16 {
@@ -149,19 +167,24 @@ extension CaseIterable where Self: RawRepresentable, Self.RawValue == UInt32 {
 //    -k ought be mapped to NCOPTION_NO_ALTERNATE_SCREEN.
 //    Ctrl+L ought be mapped to notcurses_refresh(3).
 
-public class Notcurses {
+final public class Notcurses {
+
     let nc: OpaquePointer
+
     public lazy var stdPlane: Plane = {
         Plane(notcurses_stdplane(nc))
     }()
 
     ///
     /// - SeeAlso: notcurses_init
-    public init(flags: [NotcursesOptionsFlags]) {
+    public init(logLevel: LogLevel = .silent, flags: [NotcursesOptionsFlag] = []) {
         let flagsMask = makeBitMask(from: flags)
-//        flagsMask = NCOPTION_NO_ALTERNATE_SCREEN | NCOPTION_PRESERVE_CURSOR | NCOPTION_SUPPRESS_BANNERS
-//        flagsMask = 0
-        var options = notcurses_options.init(termtype: nil, loglevel: NCLOGLEVEL_ERROR, margin_t: 0, margin_r: 0, margin_b: 0, margin_l: 0, flags: UInt64(flagsMask))
+        var options = notcurses_options.init(
+            termtype: nil,
+            loglevel: logLevel.getNativeValue(),
+            margin_t: 0, margin_r: 0, margin_b: 0, margin_l: 0,
+            flags: UInt64(flagsMask)
+        )
         nc = notcurses_init(&options, nil)
         notcurses_mice_enable(nc, UInt32(NCMICE_ALL_EVENTS))
     }
@@ -319,5 +342,55 @@ public class Notcurses {
         inputReadyHandle().waitForDataInBackgroundAndNotify()
 
         CFRunLoopRun()
+    }
+}
+
+extension Notcurses {
+
+    static public func checkForTermAndRelaunch() {
+        // If we don't have a TERM then reopen in an app that provides one.
+        let term = ProcessInfo.processInfo.environment["TERM"]
+        if term == nil {
+            let appName: String
+
+            // We prefer iTerm, so try that first
+            if FileManager.default.fileExists(atPath: "/Applications/iTerm.app") {
+                appName = "iTerm"
+            } else {
+                appName = "Terminal"
+            }
+
+            var args = ["open", "-a", appName, ProcessInfo.processInfo.arguments[0]]
+            execv("/usr/bin/open", args.map { strdup($0) } + [nil])
+            // Execution stops here
+        }
+    }
+
+    static public func debug(_ str: String) {
+        var shouldDebug = false
+
+        #if DEBUG
+            shouldDebug = true
+        #endif
+
+        if ProcessInfo.processInfo.arguments.contains("--debug") {
+            shouldDebug = true
+        }
+
+        guard shouldDebug else { return }
+
+        if isatty(STDERR_FILENO) > 0 {
+            if let log = fopen("debug.log", "wa") {
+                defer {
+                    fclose(log)
+                }
+
+                fputs(str, log)
+                fputs("\n", log)
+            }
+        } else {
+            fputs(str, stderr)
+            fputs("\n", stderr)
+        }
     }
 }

@@ -30,7 +30,7 @@ public class Plane {
         }
     }
 
-    func isNativePlaneValid() -> Bool {
+    var isNativePlaneValid: Bool {
         _ncPlane != nil && _ncPlane != Plane.InvalidPlaneMarker
     }
 
@@ -116,12 +116,12 @@ public class Plane {
     }
 
     deinit {
-        guard isNativePlaneValid() else { return }
+        guard isNativePlaneValid else { return }
         ncplane_destroy(ncPlane)
     }
 
-    public init(parent: Plane, options: Plane.Options) {
-        var nativeOptions = options.makeNativeValue()
+    public required init(parent: Plane, options: Plane.Options) {
+        var nativeOptions = options.nativeValue
         ncPlane = ncplane_create(parent.ncPlane, &nativeOptions)
         let weakRef = WeakPlaneRef()
         weakRef.plane = self
@@ -130,6 +130,28 @@ public class Plane {
 
     public convenience init(parent: Plane, y: Int, x: Int, rows: Int, columns: Int) {
         let options = Plane.Options(y: y, x: x, rows: rows, columns: columns)
+        self.init(parent: parent, options: options)
+    }
+
+    public static func makeMarginalized(
+        parent: Plane,
+        top: Int = 0,
+        left: Int = 0,
+        bottom: Int = 0,
+        right: Int = 0,
+        flags: [Flag] = [])
+    {
+        let newFlags = flags + [Flag.marginalized]
+
+        let options = Plane.Options(
+            y: top,
+            x: left,
+            rows: 0,
+            columns: 0,
+            flags: newFlags,
+            marginBottom: bottom,
+            marginRight: right
+        )
         self.init(parent: parent, options: options)
     }
 
@@ -230,7 +252,7 @@ public class Plane {
     }
 
     public func putStrAligned(y: Int?, align: Align, _ str: String) {
-        ncplane_putstr_aligned(ncPlane, Int32(y ?? -1), align.getNativeValue(), str)
+        ncplane_putstr_aligned(ncPlane, Int32(y ?? -1), align.nativeValue, str)
     }
 
     public func putStrAligned(_ str: String) {
@@ -295,17 +317,13 @@ public class Plane {
         ncplane_set_base_cell(ncPlane, cell.ncCell) != -1
     }
 
-//    public func foo() {
-//        var defaultChannel: UInt64 = 0
-//        ncchannels_set_bg_rgb(&defaultChannel, Color.green.value)
-//        ncchannels_set_bg_alpha(&defaultChannel, 0b11)
-//        ncchannels_set_fg_rgb(&defaultChannel, Color.blue.value)
-//        ncchannels_set_fg_alpha(&defaultChannel, Alpha.blend.rawValue)
-//
-//        var c: CChar = CChar(32)
-//        ncplane_set_base(ncPlane, &c, 0, defaultChannel)
-//        ncplane_move_top(ncPlane)
-//    }
+    public func gradient(y: Int, x: Int, yLen: Int, xLen: Int, egc: String = "\u{0}", styles: [Style] = [], ul: Channels, ur: Channels, ll: Channels, lr: Channels) {
+        ncplane_gradient(ncPlane, Int32(x), Int32(y), UInt32(yLen), UInt32(xLen), strdup(egc), UInt16(makeBitMask(from: styles)), ul, ur, ll, lr)
+    }
+
+    public func highGradient(y: Int, x: Int, yLen: Int, xLen: Int, egc: String = "\u{0}", styles: [Style] = [], ul: Channel, ur: Channel, ll: Channel, lr: Channel) {
+        ncplane_gradient2x1(ncPlane, Int32(x), Int32(y), UInt32(yLen), UInt32(xLen), ul, ur, ll, lr)
+    }
 }
 
 
@@ -342,7 +360,7 @@ extension Plane {
             self.marginRight = marginRight
         }
 
-        func makeNativeValue() -> ncplane_options {
+        var nativeValue: ncplane_options {
             ncplane_options(
                     y: Int32(y),
                     x: Int32(x),

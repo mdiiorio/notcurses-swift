@@ -30,6 +30,10 @@ public func createChannel(color: Color, alpha: Alpha = .opaque) -> Channel {
     ncchannel_set_alpha(&channel, alpha.rawValue) != -1
 }
 
+public func createChannels(fg: Color) -> Channels {
+    createChannels(fg: fg, bg: .black)
+}
+
 public func createChannels(fg: Color, bg: Color) -> Channels {
     (Channels(createChannel(color: fg)) << 32) + Channels(createChannel(color: bg))
 }
