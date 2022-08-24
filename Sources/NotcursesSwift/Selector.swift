@@ -33,12 +33,7 @@ public class Selector {
 
     deinit {
         ncselector_destroy(ncSelector, nil)
-    }
 
-    public var plane: Plane {
-        get {
-            Plane.getCachedPlane(ncPlane: ncselector_plane(ncSelector))
-        }
     }
 
     public func addItem(item: Selector.Item) {
