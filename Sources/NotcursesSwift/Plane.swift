@@ -190,6 +190,22 @@ public class Plane {
         ncplane_move_bottom(ncPlane)
     }
 
+    public func moveAbove(_ other: Plane) {
+        ncplane_move_above(ncPlane, other.ncPlane)
+    }
+
+    public func moveBelow(_ other: Plane) {
+        ncplane_move_below(ncPlane, other.ncPlane)
+    }
+
+    public func moveFamilyAbove(_ other: Plane) {
+        ncplane_move_family_above(ncPlane, other.ncPlane)
+    }
+
+    public func moveFamilyBelow(_ other: Plane) {
+        ncplane_move_family_below(ncPlane, other.ncPlane)
+    }
+
     public func resize(rows: Int, cols: Int) {
         ncplane_resize_simple(ncPlane, UInt32(rows), UInt32(cols))
     }
@@ -299,10 +315,6 @@ public class Plane {
 
     public func styles() -> [Style] {
         Style.enumArrayFromBitMask(mask: UInt16(ncplane_styles(ncPlane)))
-    }
-
-    public func resizeMarginalized() {
-        ncplane_resize_marginalized(ncPlane)
     }
 
     public func setChannels(_ channels: Channels) {
