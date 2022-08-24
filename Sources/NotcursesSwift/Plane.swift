@@ -30,6 +30,12 @@ public class Plane {
         }
     }
 
+    private var ownerOfNcPlane: Bool = true
+
+    func relinquishPlaneOwnership() {
+        ownerOfNcPlane = false
+    }
+
     var isNativePlaneValid: Bool {
         _ncPlane != nil && _ncPlane != Plane.InvalidPlaneMarker
     }
@@ -114,11 +120,11 @@ public class Plane {
     }
 
     deinit {
-        guard isNativePlaneValid else { return }
+        guard isNativePlaneValid && ownerOfNcPlane else { return }
         ncplane_destroy(ncPlane)
     }
 
-    public required init(parent: Plane, options: Plane.Options) {
+    public required init(parent: Plane, options: Plane.Options = Plane.Options()) {
         var nativeOptions = options.nativeValue
         ncPlane = ncplane_create(parent.ncPlane, &nativeOptions)
         let weakRef = WeakPlaneRef()

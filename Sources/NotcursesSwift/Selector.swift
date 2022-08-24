@@ -6,6 +6,8 @@ public class Selector {
 
     let ncSelector: OpaquePointer!
 
+    public private(set) var plane: Plane
+
     ///
     ///
     /// - Parameters:
@@ -14,8 +16,16 @@ public class Selector {
     public init?(plane: Plane, options: Selector.Options) {
         var nativeValue = options.getNativeValue()
         ncSelector = ncselector_create(plane.ncPlane, &nativeValue)
-        plane.invalidateNativePlane()
-        guard ncSelector != nil else { return nil }
+
+        // Hold on to the plane so it doesn't get collected
+        self.plane = plane
+
+        guard ncSelector != nil else {
+            plane.invalidateNativePlane()
+            return nil
+        }
+
+        self.plane.relinquishPlaneOwnership()
 
         // Probably need a better way to handle this
         nativeValue.items.deallocate()
