@@ -108,8 +108,6 @@ public class Plane {
 
     init(_ ncPlane: OpaquePointer!) {
         self.ncPlane = ncPlane
-        // TODO remove
-        scrolling = true
         let weakRef = WeakPlaneRef()
         weakRef.plane = self
         Plane.planeMap[ncPlane] = weakRef
