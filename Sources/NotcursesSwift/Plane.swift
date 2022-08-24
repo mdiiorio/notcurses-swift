@@ -285,6 +285,10 @@ public class Plane {
         ncplane_rounded_box(ncPlane, 0, channels, rows - 1, cols - 1, 0)
     }
 
+    public func resizeRealign() {
+        ncplane_resize_realign(ncPlane)
+    }
+
     public func scrollUp(times: Int = 1) {
         ncplane_scrollup(ncPlane, Int32(times))
     }
