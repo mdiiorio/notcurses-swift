@@ -137,26 +137,73 @@ public class Plane {
         self.init(parent: parent, options: options)
     }
 
+    // TODO setting the y or x margin appears to be broken in Notcurses currently.
+    public static func makeAligned(
+        parent: Plane,
+        verAlign: Align? = nil,
+        y: Int? = nil,
+        horAlign: Align? = nil,
+        x: Int? = nil,
+        rows: Int,
+        columns: Int,
+        flags: [Flag] = []
+    ) -> Plane {
+        guard verAlign != nil || y != nil else { fatalError("Must set either verAlign or y") }
+        guard horAlign != nil || x != nil else { fatalError("Must set either horAlign or x") }
+
+        var actualFlags = flags
+        var actualY: Int
+        var actualX: Int
+
+        if let verAlign = verAlign {
+            actualFlags += [Flag.verAligned]
+            actualY = Int(verAlign.rawValue)
+        } else {
+            // guard above, should always be set if verAlign isn't
+            actualY = y!
+        }
+
+        if let horAlign = horAlign {
+            actualFlags += [Flag.horAligned]
+            actualX = Int(horAlign.rawValue)
+        } else {
+            // guard above, should always be set if horAlign isn't
+            actualX = x!
+        }
+
+        let options = Plane.Options(
+            y: actualY,
+            x: actualX,
+            rows: rows,
+            columns: columns,
+            flags: actualFlags
+        )
+        return self.init(parent: parent, options: options)
+    }
+
     public static func makeMarginalized(
         parent: Plane,
         top: Int = 0,
         left: Int = 0,
         bottom: Int = 0,
         right: Int = 0,
-        flags: [Flag] = [])
-    {
-        let newFlags = flags + [Flag.marginalized]
-
+        flags: [Flag] = []
+    ) -> Plane {
         let options = Plane.Options(
-            y: top,
-            x: left,
-            rows: 0,
-            columns: 0,
-            flags: newFlags,
+//            y: top,
+//            x: left,
+//            rows: 0,
+//            columns: 0,
+            resizecb: { plane -> Int32 in
+                Notcurses.debug("Got resize for \(plane) \(Plane.getCachedPlane(ncPlane: plane!).columns)")
+//                Plane.getCachedPlane(ncPlane: plane!).perimeterRoundedBox()
+                return ncplane_resize_marginalized(plane!)
+            },
+            flags: flags + [Flag.marginalized],
             marginBottom: bottom,
             marginRight: right
         )
-        self.init(parent: parent, options: options)
+        return self.init(parent: parent, options: options)
     }
 
     static func getCachedPlane(ncPlane: OpaquePointer) -> Plane {
