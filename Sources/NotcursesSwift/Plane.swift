@@ -348,17 +348,29 @@ extension Plane {
         var columns: Int
         // userptr
         var name: String?
+        var resizecb: (@convention(c) (OpaquePointer?) -> Int32)?
         // resizecb
         var flags: [Flag]
         var marginBottom: Int
         var marginRight: Int
 
-        public init(y: Int, x: Int, rows: Int, columns: Int, name: String? = nil, flags: [Flag] = [], marginBottom: Int = 0, marginRight: Int = 0) {
+        public init(
+            y: Int = 0,
+            x: Int = 0,
+            rows: Int = 0,
+            columns: Int = 0,
+            name: String? = nil,
+            resizecb: (@convention(c) (OpaquePointer?) -> Int32)? = nil,
+            flags: [Flag] = [],
+            marginBottom: Int = 0,
+            marginRight: Int = 0
+        ) {
             self.y = y
             self.x = x
             self.rows = rows
             self.columns = columns
             self.name = name
+            self.resizecb = resizecb
             self.flags = flags
             self.marginBottom = marginBottom
             self.marginRight = marginRight
@@ -372,7 +384,7 @@ extension Plane {
                     cols: UInt32(columns),
                     userptr: nil,
                     name: name == nil ? nil : strdup(name),
-                    resizecb: nil,
+                    resizecb: resizecb,
                     flags: UInt64(makeBitMask(from: flags)),
                     margin_b: UInt32(marginBottom),
                     margin_r: UInt32(marginRight))
