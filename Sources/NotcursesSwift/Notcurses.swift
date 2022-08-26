@@ -349,7 +349,7 @@ private var sigwinchHandler: () -> Void = {}
 public func installSigwinchHandler(_ handler: @escaping () -> Void) {
     sigwinchHandler = handler
 
-    let sigHandler: @convention(c) (Int32) -> Void = { value -> Void in
+    let sigHandler: (@convention(c) (Int32) -> Void) = { value -> Void in
         sigwinchHandler()
     }
 
@@ -403,13 +403,12 @@ extension Notcurses {
         guard shouldDebug else { return }
 
         if isatty(STDERR_FILENO) > 0 {
-            if let log = fopen("debug.log", "wa") {
+            if let log = fopen("debug.log", "a") {
                 defer {
                     fclose(log)
                 }
 
-                fputs(str, log)
-                fputs("\n", log)
+                fputs("\(str)\n", log)
             }
         } else {
             fputs(str, stderr)
